@@ -37,6 +37,10 @@ tox-gh-actions = "^3.2.0"
 
 [tool.poetry.dependencies]
 python = "^3.12"
+rich = {version = "^13.9.4", optional = true}
+
+[tool.poetry.extras]
+rich = ["rich"]
 
 [build-system]
 requires = ["poetry-core"]

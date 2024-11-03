@@ -72,7 +72,7 @@ def test_get_subparsers_with_subparsers(cmd_tree):
     subparsers = list(cmd_tree._get_subparsers(root_parser))
     assert len(subparsers) == 1
     assert subparsers[0][0] == child_name
-    assert isinstance(subparsers[0][1], ArgumentParser)
+    assert isinstance(subparsers[0][-1], ArgumentParser)
 
 
 def test_get_subparsers_multiple_subparsers(cmd_tree):
@@ -83,7 +83,7 @@ def test_get_subparsers_multiple_subparsers(cmd_tree):
     
     subparsers = list(cmd_tree._get_subparsers(root_parser))
     assert len(subparsers) == len(child_names)
-    for name, subparser in subparsers:
+    for name, _, subparser in subparsers:
         assert name in child_names
         assert isinstance(subparser, ArgumentParser)
 

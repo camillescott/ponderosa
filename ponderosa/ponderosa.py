@@ -14,7 +14,7 @@ from argparse import (Action,
 from collections import deque
 from functools import wraps
 from itertools import pairwise
-from typing import Callable
+from typing import Callable, Type
 
 
 Subparsers = _SubParsersAction
@@ -157,7 +157,7 @@ class CmdTree:
         action = self._get_subparser_action(parser)
         if action is not None:
             for subaction in action._get_subactions():
-                yield subaction.dest, action.choices[subaction.dest]
+                yield subaction.dest, subaction, action.choices[subaction.dest]
 
     def _find_cmd(self, cmd_name: str, root: ArgumentParser | None = None) -> ArgumentParser | None:
         '''
@@ -178,13 +178,53 @@ class CmdTree:
 
         subparser_deque = deque(self._get_subparsers(root))
         while subparser_deque:
-            root_name, root_parser = subparser_deque.popleft()
+            root_name, _, root_parser = subparser_deque.popleft()
             if root_name == cmd_name:
                 return root_parser
             else:
                 subparser_deque.extend(self._get_subparsers(root_parser))
         return None
 
+    def _walk_subtree(self,
+                      parser: ArgParser,
+                      found: list[tuple[int, ArgParser, Type[Subparsers._ChoicesPseudoAction] | None]],
+                      level: int,
+                      visitor: Callable[[int,
+                                         ArgumentParser,
+                                         Type[Subparsers._ChoicesPseudoAction] | None,
+                                         ArgumentParser | None],
+                                         None] | None = None):
+        
+        for _, subparser_action, subparser in self._get_subparsers(parser):
+            if visitor is not None:
+                visitor(level, subparser, subparser_action, parser)
+            found.append((level, subparser, subparser_action))
+            self._walk_subtree(subparser, found, level=level+1, visitor=visitor) 
+
+    def walk_subtree(self, root_name: str | None,
+                           visitor: Callable[[int,
+                                              ArgumentParser,
+                                              Type[Subparsers._ChoicesPseudoAction] | None],
+                                              None] | None = None):
+        '''
+        Walks the subtree starting from the provided root name.
+
+        Args:
+            root_name (str | None): The root subparser name to start walking from.
+            visitor (Callable[[ArgumentParser], None]): The visitor function to call on each subparser.
+        '''
+        if root_name is None:
+            root = self._root
+        else:
+            root = self._find_cmd(root_name)
+        if root is None:
+            return []
+        
+        found = [(0, root, None)]
+        self._walk_subtree(root, found, 1, visitor=visitor)
+
+        return found
+    
     def gather_subtree(self, root_name: str | None) -> list[ArgumentParser]:
         '''
         Gathers all subparsers starting from the provided root name.
@@ -195,19 +235,9 @@ class CmdTree:
         Returns:
             list[ArgumentParser]: List of the collected argument parsers in the subtree.
         '''
-        if root_name is None:
-            root = self._root
-        else:
-            root = self._find_cmd(root_name)
-        if root is None:
-            return []
-        found : list[ArgumentParser] = [root]
-        parser_q = deque(self._get_subparsers(root))
-        while parser_q:
-            _, root = parser_q.popleft()
-            parser_q.extend(self._get_subparsers(root))
-            found.append(root)
-        return found
+        found = self.walk_subtree(root_name)
+        return [f[1] for f in found]
+        
 
     def _find_cmd_chain(self, cmd_fullname: list[str]) -> list[ArgumentParser | None]:
         '''
@@ -228,7 +258,7 @@ class CmdTree:
             chain : list[ArgumentParser | None] = [root_parser]
             for next_name in cmd_fullname[1:]:
                 found = False
-                for child_name, child_parser in self._get_subparsers(root_parser):
+                for child_name, _, child_parser in self._get_subparsers(root_parser):
                     if child_name == next_name:
                         root_parser = child_parser
                         chain.append(child_parser)
@@ -342,37 +372,61 @@ class CmdTree:
                     arg_adder(parser)
                     self.common_applied.add((parser, arg_adder))
 
-    def _get_help(self, parser, cmds: list[str], name: str | None = None, level: int = 0):
+    def __rich__(self):
+        from rich.console import Console, Group
+        from rich.panel import Panel
+        from rich.tree import Tree
+
+        width = max(Console().width // 2, 80)
+        tree = Tree(self._root.prog, guide_style='uu magenta')
+        nodes = {self._root: tree}
+        
+        def visitor(level, subparser, pseudoaction, parent):
+            if self._get_subparser_action(subparser) is None:
+                # leaf node
+                element = Group(self._format_subparser(pseudoaction),
+                                Panel(subparser.format_help(),
+                                      width=width))
+            else:
+                element = self._format_subparser(pseudoaction)
+            node = nodes[parent].add(element)
+            nodes[subparser] = node
+        
+        self.walk_subtree(None, visitor)
+
+        return tree
+
+    def _format_subparser(self, pseudoaction):
         '''
-        Recursively gathers help information from a parser and its subparsers.
+        Formats a subparser and its subparsers into a string.
 
         Args:
-            parser (ArgumentParser): The parser to get help from.
-            cmds (list[str]): List to append help information to.
-            name (str | None, optional): Name of the parser. Defaults to None.
-            level (int, optional): Indentation level for subcommands.
+            pseudoaction (_ChoicesPseudoAction): The pseudoaction to format.
+
+        Returns:
+            str: The formatted subparser string.
         '''
-        indent = '  ' * level
-        if name is None:
-            name = parser.prog
-        args = []
-        for action in parser._actions:
-            if isinstance(action, _SubParsersAction):
-                for subparser_action, (subparser_name, subparser) in zip(action._get_subactions(), action.choices.items()):
-                    help = subparser_action.help or ''
-                    cmds.append(f'{indent}  {subparser_action.dest}: {help}')
-                    self._get_help(subparser, cmds, name=subparser_name, level=level+1)  # Recursively traverse subparsers
-            else:
-                args.append(action.dest)
-                
-    def print_help(self):
+        help = pseudoaction.help or ''
+        try:
+            import rich
+        except ImportError:
+            return f'{pseudoaction.metavar}: {help}'
+        else:
+            return f'[bold]{pseudoaction.metavar}[/bold]: {help}'
+
+    def format_help(self):
         '''
         Prints the help information for the entire command tree.
         '''
         cmds = [self._root.format_usage(),
-                'Subcommands:']
-        self._get_help(self._root, cmds, self._root.prog)
-        print('\n'.join(cmds))
+                f'{self._root.prog}:']
+        
+        def visitor(level, subparser, pseudoaction, parent):
+            if pseudoaction:
+                cmds.append('  ' * (level+1) + self._format_subparser(pseudoaction))
+        self.walk_subtree(None, visitor)
+
+        return '\n'.join(cmds)
 
 
 def postprocess_args(func: NamespaceFunc,
