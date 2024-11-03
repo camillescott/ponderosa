@@ -1,9 +1,13 @@
 [tool.poetry]
 name = "ponderosa"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Camille Scott <camille@bogg.cc>"]
 readme = "README.md"
+
+[tool.poetry_bumpversion.file."ponderosa/__init__.py"]
+search = "__version__ = '{current_version}'"
+replace = "__version__ = '{new_version}'"
 
 [tool.poetry.group.dev]
 optional = true
@@ -32,7 +36,6 @@ exclude_lines = [
     "pragma: not covered",
     "@overload",
 ]
-
 
 [tool.coverage.run]
 branch = true
