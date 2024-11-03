@@ -1,1 +1,7 @@
-from .pothos import CmdTree, arggroup
+from .pothos import (ArgAdderFunc,
+                     ArgGroup,
+                     ArgParser,
+                     CmdTree,
+                     NamespaceFunc,
+                     SubCmd,
+                     arggroup)

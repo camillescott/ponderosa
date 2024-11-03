@@ -15,14 +15,10 @@ from collections import deque
 from functools import wraps
 from itertools import pairwise
 from typing import Callable
-from typing_extensions import Concatenate, ParamSpec
 
 
-P = ParamSpec('P')
 Subparsers = _SubParsersAction
-NS = Namespace
-NamespaceFunc = Callable[Concatenate[NS, P], int | None]
-SubCommandFunc = Callable[Concatenate[Subparsers, P], None]
+NamespaceFunc = Callable[[Namespace], int | None]
 ArgParser = ArgumentParser | _ArgumentGroup
 ArgAdderFunc = Callable[[ArgParser], Action | None]
 
@@ -78,12 +74,12 @@ class SubCmd:
         return self.parser._defaults['func']
 
     @func.setter
-    def func(self, new_func: Callable[[Namespace], None]):
+    def func(self, new_func: NamespaceFunc):
         '''
         Sets the function associated with the subcommand.
 
         Args:
-            new_func (Callable[[Namespace], None]): The function to set.
+            new_func (NamespaceFunc): The function to set.
         '''
         self.parser._defaults['func'] = new_func
 
@@ -124,6 +120,7 @@ class CmdTree:
         Returns:
             Namespace: The collected argument Namespace.
         '''
+        self._apply_common_args()
         return self._root.parse_args(*args, **kwargs)
 
     def run(self, args: Namespace | None = None) -> int:
@@ -278,7 +275,7 @@ class CmdTree:
         return child
 
     def register_cmd(self, cmd_fullname: list[str],
-                           cmd_func: NamespaceFunc[P],
+                           cmd_func: NamespaceFunc,
                            aliases: list[str] | None = None,
                            help: str | None = None):
         '''
@@ -325,7 +322,7 @@ class CmdTree:
         Returns:
             Callable: The subcommand wrapper.
         '''
-        def wrapper(cmd_func: NamespaceFunc[P]):
+        def wrapper(cmd_func: NamespaceFunc):
             return SubCmd(self.register_cmd(list(cmd_fullname),
                                             cmd_func,
                                             aliases=aliases,
@@ -385,17 +382,17 @@ class CmdTree:
         print('\n'.join(cmds))
 
 
-def postprocess_args(func: Callable[[Namespace], None],
-                     postprocessors: list[Callable[[Namespace], None]]):
+def postprocess_args(func: NamespaceFunc,
+                     postprocessors: list[NamespaceFunc]):
     '''
     Wraps a function with postprocessors.
 
     Args:
-        func (Callable[[Namespace], None]): The main function for subcommand arguments.
-        postprocessors (list[Callable[[Namespace], None]]): List of postprocessor functions.
+        func (NamespaceFunc): The main function for subcommand arguments.
+        postprocessors (list[NamespaceFunc]): List of postprocessor functions.
 
     Returns:
-        Callable: The wrapped function with postprocessing logic.
+        NamespaceFunc: The wrapped function with postprocessing logic.
     '''
     @wraps(func)
     def wrapper(args: Namespace):
@@ -464,3 +461,10 @@ class ArgGroup:
         '''
         self.postprocessors.append(func)
         return func
+
+
+def arggroup(groupname: str | None = None,
+             desc: str | None = None):
+    def wrapper(adder_func: ArgAdderFunc):
+        return ArgGroup(groupname, adder_func, desc=desc)
+    return wrapper
