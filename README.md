@@ -2,6 +2,10 @@
 
 ![PyPI - Version](https://img.shields.io/pypi/v/ponderosa?link=https%3A%2F%2Fpypi.org%2Fproject%2Fponderosa%2F) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa) <a href="https://github.com/camillescott/ponderosa/blob/latest/LICENSE"><img alt="License: 3-Clause BSD" src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a> ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ponderosa) ![Static Badge](https://img.shields.io/badge/Platforms-Linux%20%7C%20MacOS%20%7C%20Windows-blue)
 
+Ponderosa extends the Python standard library's [argparse](https://docs.python.org/3/library/argparse.html) in an effort to make dealing with deeply nested subcommand trees less ponderous. 
+I've tried out many different command line parsing libraries over the years, but none of them have quite scratched the itch for this use case.
+Ponderosa gets rid of those giant blocks of `add_subparsers` nastiness without entirely reinventing the wheel at the lower level of parsing the arguments themselves.
+
 ## Basic Usage
 
 ```python
