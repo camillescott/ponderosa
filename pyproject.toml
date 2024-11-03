@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ponderosa"
-version = "0.2.1"
+version = "0.2.2"
 description = ""
 authors = ["Camille Scott <camille@bogg.cc>"]
 readme = "README.md"
@@ -9,7 +9,7 @@ homepage = "https://github.com/camillescott/ponderosa"
 classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
-    "Operating System :: Apple :: MacOS",
+    "Operating System :: MacOS :: MacOS X",
     "Topic :: Utilities",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: User Interfaces"
