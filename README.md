@@ -39,9 +39,9 @@ if __name__ == '__main__':
 Running the example gives, roughly:
 
 ```console
-$ python example.py foobar --bar 1 --foo bar
-Postprocessing args: Namespace(func=<function my_subcommand at 0x783bd71b58a0>, foo='bar', bar=1)
-Handling subcommand with args: Namespace(func=<function my_subcommand at 0x783bd71b58a0>, foo='bar', bar=1)
+$ python example_postprocessor.py foobar --bar 1 --foo bar      
+Postprocessing args: Namespace(func=<function foobar_cmd at 0x7bc1ba0b1800>, foo='bar', bar=1)
+Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x7bc1ba0b1800>, foo='bar', bar=1)
 ```
 
 We can of course register multiple postprocessors, and do so on the result of a `SubCmd.args`.
@@ -50,8 +50,8 @@ The postprocessors will be executed in the order they are registered:
 ```python
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser, Namespace
-from pothos import CmdTree, arggroup
+from argparse import Namespace
+from pothos import ArgParser, CmdTree
 
 commands = CmdTree()
 
@@ -61,7 +61,7 @@ def foobar_cmd(args: Namespace) -> int:
     return 0
 
 @foobar_cmd.args()
-def foobar_args(group: ArgumentParser):
+def foobar_args(group: ArgParser):
     group.add_argument('--foo', type=str)
     group.add_argument('--bar', type=int)
     
