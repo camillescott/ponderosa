@@ -1,6 +1,6 @@
 # ponderosa: ergonomic subcommand handling built on argparse
 
-![PyPI - Version](https://img.shields.io/pypi/v/ponderosa)
+![PyPI - Version](https://img.shields.io/pypi/v/ponderosa) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa)
 
 ## Registering Subcommands
 
