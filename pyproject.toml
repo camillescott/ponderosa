@@ -5,9 +5,16 @@ description = ""
 authors = ["Camille Scott <camille@bogg.cc>"]
 readme = "README.md"
 
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.26.0"
+pytest = "^8.3.3"
+pdbpp = "^0.10.3"
+
 [tool.poetry.dependencies]
 python = "^3.12"
-
 
 [build-system]
 requires = ["poetry-core"]
