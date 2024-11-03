@@ -1,6 +1,6 @@
 # ponderosa: ergonomic subcommand handling built on argparse
 
-![PyPI - Version](https://img.shields.io/pypi/v/ponderosa) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa) <a href="https://github.com/camillescott/ponderosa/blob/latest/LICENSE"><img alt="License: 3-Clause BSD" src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a> ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ponderosa) ![Static Badge](https://img.shields.io/badge/Platforms-Linux%20%7C%20MacOS%20%7C%20Windows-blue)
+![PyPI - Version](https://img.shields.io/pypi/v/ponderosa?link=https%3A%2F%2Fpypi.org%2Fproject%2Fponderosa%2F) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa) <a href="https://github.com/camillescott/ponderosa/blob/latest/LICENSE"><img alt="License: 3-Clause BSD" src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a> ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ponderosa) ![Static Badge](https://img.shields.io/badge/Platforms-Linux%20%7C%20MacOS%20%7C%20Windows-blue)
 
 
 
