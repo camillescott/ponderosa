@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # (c) Camille Scott, 2024
-# File   : pothos.py
+# File   : ponderosa.py
 # License: BSD 3-Clause
 # Author : Camille Scott <camille@bogg.cc>
 # Date   : 02.11.2024

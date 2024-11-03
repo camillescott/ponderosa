@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import Namespace
-from pothos import ArgParser, CmdTree
+from ponderosa import ArgParser, CmdTree
 
 commands = CmdTree()
 

@@ -1,4 +1,4 @@
-from .pothos import (ArgAdderFunc,
+from .ponderosa import (ArgAdderFunc,
                      ArgGroup,
                      ArgParser,
                      CmdTree,

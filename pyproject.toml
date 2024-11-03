@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pothos"
+name = "ponderosa"
 version = "0.1.0"
 description = ""
 authors = ["Camille Scott <camille@bogg.cc>"]

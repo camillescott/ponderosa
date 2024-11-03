@@ -1,8 +1,8 @@
 import pytest
 from argparse import ArgumentParser, Namespace
-from pothos.pothos import CmdTree
+from ponderosa.ponderosa import CmdTree
 
-# FILE: pothos/test_pothos.py
+# FILE: ponderosa/test_ponderosa.py
 
 
 @pytest.fixture

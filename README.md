@@ -1,4 +1,4 @@
-# pothos: ergonomic subcommand handling built on argparse
+# ponderosa: ergonomic subcommand handling built on argparse
 
 ## Registering Subcommands
 
@@ -13,7 +13,7 @@ You can register postprocessors on your argument groups to handle this:
 #!/usr/bin/env python3
 
 from argparse import Namespace
-from pothos import arggroup, ArgParser, CmdTree
+from ponderosa import arggroup, ArgParser, CmdTree
 
 commands = CmdTree()
 
@@ -51,7 +51,7 @@ The postprocessors will be executed in the order they are registered:
 #!/usr/bin/env python3
 
 from argparse import Namespace
-from pothos import ArgParser, CmdTree
+from ponderosa import ArgParser, CmdTree
 
 commands = CmdTree()
 
