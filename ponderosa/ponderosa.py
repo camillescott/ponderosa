@@ -274,7 +274,8 @@ class CmdTree:
                          child_name: str,
                          func = None,
                          aliases: list[str] | None = None,
-                         help: str | None = None):
+                         help: str | None = None,
+                         **parser_kwargs):
         '''
         Adds a child subparser to the root parser.
 
@@ -290,7 +291,7 @@ class CmdTree:
         '''
         if (subaction := self._get_subparser_action(root)) is None:
             subaction = root.add_subparsers()
-        child = subaction.add_parser(child_name, help=help, aliases=aliases if aliases else [])
+        child = subaction.add_parser(child_name, help=help, aliases=aliases if aliases else [], **parser_kwargs)
         cmd_func = (lambda _: child.print_help()) if func is None else func
         child.set_defaults(func=cmd_func)
         return child
@@ -298,7 +299,8 @@ class CmdTree:
     def register_cmd(self, cmd_fullname: list[str],
                            cmd_func: NamespaceFunc,
                            aliases: list[str] | None = None,
-                           help: str | None = None):
+                           help: str | None = None,
+                           **parser_kwargs) -> ArgumentParser:
         '''
         Registers a fully qualified command name with a function.
 
@@ -323,7 +325,7 @@ class CmdTree:
                 if chain[i] is None:
                     raise ValueError(f'Bad argument chain: {chain[i]}->{chain[j]}')
                 elif cmd_fullname[j] == leaf_name:
-                    return self._add_child(chain[i], leaf_name, func=cmd_func, aliases=aliases, help=help)
+                    return self._add_child(chain[i], leaf_name, func=cmd_func, aliases=aliases, help=help, **parser_kwargs)
                 else:
                     child = self._add_child(chain[i], cmd_fullname[j])
                     chain[j] = child
@@ -331,7 +333,8 @@ class CmdTree:
 
     def register(self, *cmd_fullname: str,
                        aliases: list[str] | None = None,
-                       help: str | None = None):
+                       help: str | None = None,
+                       **parser_kwargs):
         '''
         Registers a new subcommand with the CmdTree.
 
@@ -347,7 +350,8 @@ class CmdTree:
             return SubCmd(self.register_cmd(list(cmd_fullname),
                                             cmd_func,
                                             aliases=aliases,
-                                            help=help),
+                                            help=help,
+                                            **parser_kwargs),
                           cmd_fullname[-1],
                           self)
         return wrapper
@@ -423,7 +427,7 @@ class CmdTree:
         
         def visitor(level, subparser, pseudoaction, parent):
             if pseudoaction:
-                cmds.append('  ' * (level+1) + self._format_subparser(pseudoaction))
+                cmds.append('  ' * level + self._format_subparser(pseudoaction))
         self.walk_subtree(None, visitor)
 
         return '\n'.join(cmds)

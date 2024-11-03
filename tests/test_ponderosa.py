@@ -275,6 +275,19 @@ def test_register_cmd_decorator_with_help(cmd_tree):
     assert help_text in cmd_tree._root.format_help()
 
 
+def test_register_cmd_decorator_with_kwargs(cmd_tree):
+    desc = 'This is a long description of a test command that should be passed through'
+    @cmd_tree.register('test_cmd', description=desc)
+    def test_cmd_func(namespace: Namespace) -> int:
+        return 0
+
+    parser = cmd_tree._find_cmd('test_cmd')
+    assert parser is not None
+    assert parser.prog == f'{cmd_tree._root.prog} test_cmd'
+    assert parser._defaults['func'] == test_cmd_func.func
+    assert parser.description == desc
+
+
 def test_register_cmd_decorator_nested(cmd_tree):
     @cmd_tree.register('parent')
     def parent_func(namespace: Namespace) -> int:
