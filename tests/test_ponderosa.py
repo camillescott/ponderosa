@@ -174,6 +174,68 @@ def test_find_cmd_chain_all_existing(cmd_tree):
     assert chain[1].prog == f'{root_parser.prog} existing_root existing_leaf'
 
 
+def test_gather_subtree(cmd_tree):
+    root_prog = cmd_tree._root.prog
+
+    @cmd_tree.register('grandparent')
+    def grandparent_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @cmd_tree.register('grandparent', 'parent', 'child')
+    def child_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'parent', 'sibling')
+    def sibling_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'aunt', 'cousin')
+    def cousin_cmd(namespace: Namespace) -> int:
+        return 0
+
+    subtree = cmd_tree.gather_subtree('grandparent')
+    assert len(subtree) == 6
+
+    subtree = cmd_tree.gather_subtree('parent')
+    assert len(subtree) == 3
+    assert [p.prog for p in subtree] == [f'{root_prog} grandparent parent',
+                                         f'{root_prog} grandparent parent child',
+                                         f'{root_prog} grandparent parent sibling']
+
+
+def test_gather_subtree_with_aliases(cmd_tree):
+    root_prog = cmd_tree._root.prog
+
+    @cmd_tree.register('grandparent', aliases=['gp', 'g'])
+    def grandparent_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'parent', aliases=['p', 'pa'])
+    def parent_cmd(namespace: Namespace) -> int:
+        return
+
+    @cmd_tree.register('grandparent', 'parent', 'child', aliases=['c', 'ch'])
+    def child_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'parent', 'sibling')
+    def sibling_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'aunt', 'cousin')
+    def cousin_cmd(namespace: Namespace) -> int:
+        return 0
+
+    subtree = cmd_tree.gather_subtree('grandparent')
+    assert len(subtree) == 6
+
+    subtree = cmd_tree.gather_subtree('parent')
+    assert len(subtree) == 3
+    assert [p.prog for p in subtree] == [f'{root_prog} grandparent parent',
+                                         f'{root_prog} grandparent parent child',
+                                         f'{root_prog} grandparent parent sibling']
+
+
 def test_register_cmd_decorator(cmd_tree):
     @cmd_tree.register('test_cmd')
     def test_cmd_func(namespace: Namespace) -> int:
@@ -245,6 +307,37 @@ def test_common_args_decorator(cmd_tree):
         parser.add_argument('--foo', type=int)
 
     @cmd_tree.register('grandparent', 'parent', 'child')
+    def child_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'parent', 'sibling')
+    def sibling_cmd(namespace: Namespace) -> int:
+        return 0
+
+    args = cmd_tree.parse_args(['grandparent', '--foo', '42'])
+    assert args.foo == 42
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', '--foo', '42'])
+    assert args.foo == 42
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', 'child', '--foo', '42'])
+    assert args.foo == 42
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', 'sibling', '--foo', '42'])
+    assert args.foo == 42
+
+
+def test_common_args_with_aliases(cmd_tree):
+
+    @cmd_tree.register('grandparent', aliases=['gp', 'g'])
+    def grandparent_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @grandparent_cmd.args(common=True)
+    def common_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @cmd_tree.register('grandparent', 'parent', 'child', aliases=['c', 'ch'])
     def child_cmd(namespace: Namespace) -> int:
         return 0
     

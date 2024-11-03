@@ -156,7 +156,8 @@ class CmdTree:
         '''
         action = self._get_subparser_action(parser)
         if action is not None:
-            yield from action.choices.items()
+            for subaction in action._get_subactions():
+                yield subaction.dest, action.choices[subaction.dest]
 
     def _find_cmd(self, cmd_name: str, root: ArgumentParser | None = None) -> ArgumentParser | None:
         '''
