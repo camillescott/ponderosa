@@ -1,0 +1,60 @@
+# This workflow will install Python dependencies,
+# run tests with a variety of Python versions,
+# and upload a new build to TestPyPI.
+#
+# For more information see:
+# https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Tests
+
+on: [ push ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: [
+          '3.12',
+          '3.13'
+        ]
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      uses: Gr1N/setup-poetry@v9
+
+    - name: Install library and dependencies
+      run: |
+        poetry run pip install --upgrade pip setuptools
+        poetry install --with tests
+
+    - name: Run Tox (Pytest + Coverage)
+      run: |
+        poetry run tox
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PLATFORM: ${{ matrix.os }}
+
+    - name: Upload Results to CodeCov
+      if: success()
+      uses: codecov/codecov-action@v4
+      with:
+        env_vars: TOXENV
+        fail_ci_if_error: false
+        files: ./tests/reports/coverage-html/index.html,./tests/reports/coverage.xml
+        flags: unittests
+        name: ${{ matrix.os }} - Python ${{ matrix.python-version }}
+        token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,5 +1,7 @@
 # ponderosa: ergonomic subcommand handling built on argparse
 
+![PyPI - Version](https://img.shields.io/pypi/v/ponderosa)
+
 ## Registering Subcommands
 
 
