@@ -2,9 +2,58 @@
 
 ![PyPI - Version](https://img.shields.io/pypi/v/ponderosa?link=https%3A%2F%2Fpypi.org%2Fproject%2Fponderosa%2F) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa) <a href="https://github.com/camillescott/ponderosa/blob/latest/LICENSE"><img alt="License: 3-Clause BSD" src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a> ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ponderosa) ![Static Badge](https://img.shields.io/badge/Platforms-Linux%20%7C%20MacOS%20%7C%20Windows-blue)
 
+## Basic Usage
+
+```python
+from argparse import Namespace
+from ponderosa import ArgParser, CmdTree
+
+commands = CmdTree(description='Ponderosa Basics')
+
+@commands.register('basics', help='Easy as pie 🥧')
+def basics_cmd(args: Namespace):
+    print('Ponderosa 🌲')
+    if args.show:
+        commands.print_help()
+
+@basics_cmd.args()
+def _(parser: ArgParser):
+    parser.add_argument('--show', action='store_true', default=False)
+
+@commands.register('basics', 'deeply', 'nested', help='A deeply nested command')
+def deeply_nested_cmd(args: Namespace):
+    print(f'Deeply nested command! Args: {args}')
+
+@deeply_nested_cmd.args()
+def _(parser: ArgParser):
+    parser.add_argument('--deep', action='store_true', default=False)
+
+if __name__ == '__main__':
+    commands.run()
+```
+
+```console
+$ python examples/basics.py basics --show
+Ponderosa 🌲
+usage: basics.py [-h] {basics} ...
+
+Subcommands:
+  basics: Easy as pie 🥧
+    deeply: 
+      nested: A deeply nested command
+
+$ python examples/basics.py basics deeply nested -h
+usage: basics.py basics deeply nested [-h] [--deep]
+
+options:
+  -h, --help  show this help message and exit
+  --deep
+```
 
 
 ## Registering Subcommands
+
+
 
 
 ## Add Postprocessors
@@ -43,7 +92,7 @@ if __name__ == '__main__':
 Running the example gives, roughly:
 
 ```console
-$ python example_postprocessor.py foobar --bar 1 --foo bar      
+$ python examples/postprocessor.py foobar --bar 1 --foo bar      
 Postprocessing args: Namespace(func=<function foobar_cmd at 0x7bc1ba0b1800>, foo='bar', bar=1)
 Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x7bc1ba0b1800>, foo='bar', bar=1)
 ```
@@ -85,7 +134,7 @@ if __name__ == '__main__':
 Which gives:
 
 ```console
-$ python example_multi_postprocessor.py foobar --foo bar --bar 1
+$ python examples/multi_postprocessor.py foobar --foo bar --bar 1
 SubCmd.args.wrapper: foobar
 First postprocessor: Namespace(func=<function foobar_cmd at 0x751415cb1a80>, foo='bar', bar=1)
 Second postprocessor: Namespace(func=<function foobar_cmd at 0x751415cb1a80>, foo='bar', bar=1, calculated=2)
@@ -130,7 +179,7 @@ if __name__ == '__main__':
 This time, we get:
 
 ```console
-$ python examples/example_priority_postprocessors.py foobar --bar 2 
+$ python examples/priority_postprocessors.py foobar --bar 2 
 High priority: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2)
 Low priority: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2, calculated=4)
 Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2, calculated=4)
