@@ -1,9 +1,20 @@
 [tool.poetry]
 name = "ponderosa"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["Camille Scott <camille@bogg.cc>"]
 readme = "README.md"
+license = "BSD-3-Clause"
+homepage = "https://github.com/camillescott/ponderosa"
+classifiers = [
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Apple :: MacOS",
+    "Topic :: Utilities",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: User Interfaces"
+]
+
 
 [tool.poetry_bumpversion.file."ponderosa/__init__.py"]
 search = "__version__ = '{current_version}'"
