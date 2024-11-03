@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ponderosa"
-version = "0.4.0"
+version = "0.4.1"
 description = ""
 authors = ["Camille Scott <camille@bogg.cc>"]
 readme = "README.md"
