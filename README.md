@@ -114,6 +114,8 @@ def foobar_args(group: ArgParser):
 def _(args: Namespace):
     print(f'Low priority: {args}')
 
+# Usually, this function would run second, as it was defined second.
+# It will run first due to its priority score.
 @foobar_args.postprocessor(priority=100)
 def _(args: Namespace):
     print(f'High priority: {args}')
@@ -121,4 +123,13 @@ def _(args: Namespace):
 
 if __name__ == '__main__':    
     commands.run()
+```
+
+This time, we get:
+
+```console
+$ python examples/example_priority_postprocessors.py foobar --bar 2 
+High priority: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2)
+Low priority: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2, calculated=4)
+Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2, calculated=4)
 ```
