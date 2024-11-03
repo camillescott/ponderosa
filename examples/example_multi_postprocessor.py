@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser, Namespace
-from pothos import CmdTree, arggroup
+from argparse import Namespace
+from pothos import ArgParser, CmdTree
 
 commands = CmdTree()
 
@@ -11,7 +11,7 @@ def foobar_cmd(args: Namespace) -> int:
     return 0
 
 @foobar_cmd.args()
-def foobar_args(group: ArgumentParser):
+def foobar_args(group: ArgParser):
     group.add_argument('--foo', type=str)
     group.add_argument('--bar', type=int)
     
