@@ -17,6 +17,8 @@ pdbpp = "^0.10.3"
 [tool.poetry.group.tests.dependencies]
 pytest = "^8.3.3"
 pytest-cov = "^6.0.0"
+tox = "^4.23.2"
+tox-gh-actions = "^3.2.0"
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -24,3 +26,18 @@ python = "^3.12"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: not covered",
+    "@overload",
+]
+
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+omit = [
+    ".tox/*",
+    "tests/*",
+]
