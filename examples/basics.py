@@ -17,6 +17,10 @@ def _(parser: ArgParser):
 def deeply_nested_cmd(args: Namespace):
     print(f'Deeply nested command! Args: {args}')
 
+@commands.register('basics', 'deeply', 'also-nested', help='Another deeply nested command')
+def deeply_nested_cmd(args: Namespace):
+    print(f'Another deeply nested command! Args: {args}')
+
 @deeply_nested_cmd.args()
 def _(parser: ArgParser):
     parser.add_argument('--deep', action='store_true', default=False)
