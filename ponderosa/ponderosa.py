@@ -56,7 +56,6 @@ class SubCmd:
         '''
         
         def wrapper(arg_adder: ArgAdderFunc):
-            print(f'SubCmd.args.wrapper: {self.name}')
             group = ArgGroup(groupname, arg_adder, desc=desc)
             apply_func = group.apply(common=common)
             apply_func(self)
@@ -123,18 +122,8 @@ class CmdTree:
         self._apply_common_args()
         return self._root.parse_args(*args, **kwargs)
 
-    def run(self, args: Namespace | None = None) -> int:
-        '''
-        Parses the arguments and executes the registered functions.
-
-        Args:
-            args (Namespace | None): The parsed Namespace to execute. If None, args are parsed.
-
-        Returns:
-            int: The return code of executed function, 0 if None.
-        '''
-        if args is None:
-            args = self.parse_args()
+    def run(self, *args, **kwargs) -> int:
+        args = self.parse_args(*args, **kwargs)
         if (retcode := args.func(args)) is None:
             return 0
         return retcode
@@ -396,7 +385,8 @@ def postprocess_args(func: NamespaceFunc,
     '''
     @wraps(func)
     def wrapper(args: Namespace):
-        for postproc_func in postprocessors:
+        funcs = sorted(postprocessors, key=lambda func_tuple: func_tuple[0], reverse=True)
+        for _, postproc_func in funcs:
             postproc_func(args)
         func(args)
     return wrapper
@@ -418,7 +408,7 @@ class ArgGroup:
         self.group_name = group_name
         self.arg_func = arg_func
         self.desc = desc
-        self.postprocessors: list[Callable[[Namespace], None]] = []
+        self.postprocessors: list[tuple[int, NamespaceFunc]] = []
 
     def apply(self, common: bool = False, *args, **kwargs):
         '''
@@ -449,18 +439,21 @@ class ArgGroup:
             return target
         return wrapper
 
-    def postprocessor(self, func: Callable[[Namespace], None]):
+    def postprocessor(self, priority: int = 0):
         '''
         Adds a postprocessor function to the argument group.
 
         Args:
-            func (Callable[[Namespace], None]): The postprocessor function to add.
+            func (NamespaceFunc): The postprocessor function to add.
+            priority (int, optional): The priority of the postprocessor.
 
         Returns:
             Callable: The input function itself.
         '''
-        self.postprocessors.append(func)
-        return func
+        def wrapper(func: NamespaceFunc):
+            self.postprocessors.append((priority, func))
+            return func
+        return wrapper
 
 
 def arggroup(groupname: str | None = None,

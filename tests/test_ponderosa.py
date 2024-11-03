@@ -232,3 +232,46 @@ def test_register_cmd_decorator_nested(cmd_tree):
     assert child_parser is not None
     assert child_parser.prog == f'{cmd_tree._root.prog} parent child'
     assert child_parser._defaults['func'] == child_func.func
+
+
+def test_postprocessor_decorator(cmd_tree):
+    postprocessed = []
+
+    @cmd_tree.register('test_cmd')
+    def test_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @test_cmd.args()
+    def test_cmd_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @test_cmd_args.postprocessor()
+    def test_postprocessor(namespace: Namespace):
+        postprocessed.append(namespace.foo * 2)
+
+    cmd_tree.run(['test_cmd', '--foo', '42'])
+    assert postprocessed[-1] == 84
+
+
+def test_postprocessor_priorities(cmd_tree):
+    postprocessed = []
+
+    @cmd_tree.register('test_cmd')
+    def test_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @test_cmd.args()
+    def test_cmd_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @test_cmd_args.postprocessor(priority=0)
+    def pp_1(namespace: Namespace):
+        assert postprocessed[-1]  == 84
+        postprocessed.append(True)
+
+    @test_cmd_args.postprocessor(priority=100)
+    def pp_2(namespace: Namespace):
+        postprocessed.append(namespace.foo * 2)
+
+    cmd_tree.run(['test_cmd', '--foo', '42'])
+    assert postprocessed == [84, True]

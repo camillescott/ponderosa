@@ -30,7 +30,7 @@ def foobar_cmd(args: Namespace) -> int:
     print(f'Handling subcommand with args: {args}')
     return 0
     
-@foobar_args.postprocessor
+@foobar_args.postprocessor()
 def foobar_postprocessor(args: Namespace):
     print(f'Postprocessing args: {args}')
 
@@ -47,7 +47,7 @@ Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x7bc1ba0b
 ```
 
 We can of course register multiple postprocessors, and do so on the result of a `SubCmd.args`.
-The postprocessors will be executed in the order they are registered:
+By default, the postprocessors will be executed in the order they are registered:
 
 ```python
 #!/usr/bin/env python3
@@ -67,12 +67,12 @@ def foobar_args(group: ArgParser):
     group.add_argument('--foo', type=str)
     group.add_argument('--bar', type=int)
     
-@foobar_args.postprocessor
+@foobar_args.postprocessor()
 def _(args: Namespace):
     print(f'First postprocessor: {args}')
     args.calculated = args.bar * 2
 
-@foobar_args.postprocessor
+@foobar_args.postprocessor()
 def _(args: Namespace):
     print(f'Second postprocessor: {args}')
 
@@ -88,4 +88,37 @@ SubCmd.args.wrapper: foobar
 First postprocessor: Namespace(func=<function foobar_cmd at 0x751415cb1a80>, foo='bar', bar=1)
 Second postprocessor: Namespace(func=<function foobar_cmd at 0x751415cb1a80>, foo='bar', bar=1, calculated=2)
 Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x751415cb1a80>, foo='bar', bar=1, calculated=2)
+```
+
+You can also provide a priority to your postprocessors if registration order is insufficient:
+
+```python
+#!/usr/bin/env python3
+
+from argparse import Namespace
+from ponderosa import ArgParser, CmdTree
+
+commands = CmdTree()
+
+@commands.register('foobar')
+def foobar_cmd(args: Namespace) -> int:
+    print(f'Handling subcommand with args: {args}')
+    return 0
+
+@foobar_cmd.args()
+def foobar_args(group: ArgParser):
+    group.add_argument('--foo', type=str)
+    group.add_argument('--bar', type=int)
+
+@foobar_args.postprocessor()
+def _(args: Namespace):
+    print(f'Low priority: {args}')
+
+@foobar_args.postprocessor(priority=100)
+def _(args: Namespace):
+    print(f'High priority: {args}')
+    args.calculated = args.bar * 2
+
+if __name__ == '__main__':    
+    commands.run()
 ```

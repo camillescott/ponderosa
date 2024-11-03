@@ -16,7 +16,7 @@ def foobar_cmd(args: Namespace) -> int:
     print(f'Handling subcommand with args: {args}')
     return 0
     
-@foobar_args.postprocessor
+@foobar_args.postprocessor()
 def foobar_postprocessor(args: Namespace):
     print(f'Postprocessing args: {args}')
 
