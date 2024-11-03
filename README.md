@@ -1,6 +1,6 @@
 # ponderosa: ergonomic subcommand handling built on argparse
 
-![PyPI - Version](https://img.shields.io/pypi/v/ponderosa) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa)
+![PyPI - Version](https://img.shields.io/pypi/v/ponderosa) ![Tests](https://github.com/camillescott/ponderosa/actions/workflows/pytest.yml/badge.svg) [![codecov](https://codecov.io/github/camillescott/ponderosa/graph/badge.svg?token=XSESR7TKXJ)](https://codecov.io/github/camillescott/ponderosa) <a href="https://github.com/camillescott/ponderosa/blob/latest/LICENSE"><img alt="License: 3-Clause BSD" src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a>
 
 ## Registering Subcommands
 
