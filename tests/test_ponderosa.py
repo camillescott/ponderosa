@@ -234,6 +234,37 @@ def test_register_cmd_decorator_nested(cmd_tree):
     assert child_parser._defaults['func'] == child_func.func
 
 
+def test_common_args_decorator(cmd_tree):
+
+    @cmd_tree.register('grandparent')
+    def grandparent_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @grandparent_cmd.args(common=True)
+    def common_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @cmd_tree.register('grandparent', 'parent', 'child')
+    def child_cmd(namespace: Namespace) -> int:
+        return 0
+    
+    @cmd_tree.register('grandparent', 'parent', 'sibling')
+    def sibling_cmd(namespace: Namespace) -> int:
+        return 0
+
+    args = cmd_tree.parse_args(['grandparent', '--foo', '42'])
+    assert args.foo == 42
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', '--foo', '42'])
+    assert args.foo == 42
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', 'child', '--foo', '42'])
+    assert args.foo == 42
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', 'sibling', '--foo', '42'])
+    assert args.foo == 42
+
+
 def test_postprocessor_decorator(cmd_tree):
     postprocessed = []
 

@@ -107,6 +107,7 @@ class CmdTree:
         
         self.root = SubCmd(self._root, self._root.prog, self)
         self.common_adders: list[tuple[str | None, ArgAdderFunc]] = []
+        self.common_applied: set[tuple[ArgParser, ArgAdderFunc]] = set()
 
     def parse_args(self, *args, **kwargs):
         '''
@@ -336,7 +337,9 @@ class CmdTree:
         '''
         for root_name, arg_adder in self.common_adders:
             for parser in self.gather_subtree(root_name):
-                arg_adder(parser)
+                if (parser, arg_adder) not in self.common_applied:
+                    arg_adder(parser)
+                    self.common_applied.add((parser, arg_adder))
 
     def _get_help(self, parser, cmds: list[str], name: str | None = None, level: int = 0):
         '''
