@@ -151,7 +151,6 @@ class CmdTree:
         Args:
             args (Namespace): The Namespace to postprocess.
         '''
-        from rich import print
         funcs = sorted(self.postprocessors_q, key=lambda func_tuple: func_tuple[0], reverse=True)
         for _, postproc_func in funcs:
             postproc_func(args)
