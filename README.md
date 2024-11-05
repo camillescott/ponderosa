@@ -8,6 +8,11 @@ Ponderosa gets rid of those giant blocks of `add_subparsers` nastiness without e
 
 ## Basic Usage
 
+ponderosa is primarily interacted with via the `CmdTree` class.
+This class keeps track of the parser tree, adds subparsers when needed, exposes methods for finding parsers and traversing the subcommand tree, and provides some convenience functions for printing out the subcommand tree in an orderly way.
+To convert a function into a subcommand, we use the `CmdTree.register` decorator with the fully qualified subcommand name.
+The returned object can then register its arguments with its `.args` decorator.
+
 ```python
 from argparse import Namespace
 from ponderosa import ArgParser, CmdTree
@@ -63,8 +68,34 @@ options:
 
 ## Registering Subcommands
 
+The `register` decorator takes care of the boilerplate of adding intermediate subparsers to your subcommand tree.
+Given a fully qualified subcommand string, for example `grandparent parent child`, the `CmdTree` will search for the first subparser matching the root name (in this case, `grandparent`), and then find all the intermediary subparsers; any intermediaries that do not yet exist will be instantiated, including the root subparser if necessary.
 
+```pycon
+>>> from argparse import Namespace
+>>> from ponderosa import CmdTree
+>>> 
+>>> commands = CmdTree()
+>>> 
+>>> @commands.register('grandparent', 'parent', 'child')
+... def _(args: Namespace):
+...     print('Hello from child!')
+... 
+>>> commands.run(['grandparent', 'parent', 'child'])
+Hello from child!
+0
+```
 
+All arguments passed to `register` after the subcommand string are forwarded on to `add_parser`:
+
+```python
+@commands.register('subcomand',
+                   help='A useful subcommand',
+                   aliases=['sub'],
+                   description='A long description of the subcommand...')
+def _(args):
+    pass
+```
 
 ## Add Postprocessors
 
