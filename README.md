@@ -11,6 +11,7 @@ Ponderosa gets rid of those giant blocks of `add_subparsers` nastiness without e
 ```python
 from argparse import Namespace
 from ponderosa import ArgParser, CmdTree
+# ArgParser is just Union[argparse.ArgumentParser, argparse._ArgumentGroup]
 
 commands = CmdTree(description='Ponderosa Basics')
 

@@ -104,10 +104,12 @@ class CmdTree:
         self._root.set_defaults(func = lambda _: self._root.print_help())
         if not self._get_subparsers(self._root):
             self._root.add_subparsers()
+        self._root._cmd_tree = self
         
         self.root = SubCmd(self._root, self._root.prog, self)
         self.common_adders: list[tuple[str | None, ArgAdderFunc]] = []
         self.common_applied: set[tuple[ArgParser, ArgAdderFunc]] = set()
+        self.postprocessors_q: list[tuple[int, NamespaceFunc]] = []
 
     def parse_args(self, *args, **kwargs):
         '''
@@ -121,13 +123,38 @@ class CmdTree:
             Namespace: The collected argument Namespace.
         '''
         self._apply_common_args()
-        return self._root.parse_args(*args, **kwargs)
+        parsed = self._root.parse_args(*args, **kwargs)
+        self._run_postprocessors(parsed)
+        return parsed
 
     def run(self, *args, **kwargs) -> int:
-        args = self.parse_args(*args, **kwargs)
-        if (retcode := args.func(args)) is None:
+        parsed = self.parse_args(*args, **kwargs)
+        if (retcode := parsed.func(parsed)) is None:
             return 0
         return retcode
+
+    def enqueue_postprocessor(self, func: NamespaceFunc, priority: int = 0):
+        '''
+        Enqueues a postprocessor function to run after argument parsing.
+
+        Args:
+            func (NamespaceFunc): The postprocessor function to enqueue.
+            priority (int, optional): The priority of the postprocessor.
+        '''
+        if (priority, func) not in self.postprocessors_q:
+            self.postprocessors_q.append((priority, func))
+
+    def _run_postprocessors(self, args: Namespace):
+        '''
+        Runs postprocessors on the provided Namespace.
+
+        Args:
+            args (Namespace): The Namespace to postprocess.
+        '''
+        from rich import print
+        funcs = sorted(self.postprocessors_q, key=lambda func_tuple: func_tuple[0], reverse=True)
+        for _, postproc_func in funcs:
+            postproc_func(args)
 
     def _get_subparser_action(self, parser: ArgumentParser) -> _SubParsersAction | None:
         '''
@@ -294,6 +321,7 @@ class CmdTree:
         child = subaction.add_parser(child_name, help=help, aliases=aliases if aliases else [], **parser_kwargs)
         cmd_func = (lambda _: child.print_help()) if func is None else func
         child.set_defaults(func=cmd_func)
+        child._cmd_tree = self
         return child
 
     def register_cmd(self, cmd_fullname: list[str],
@@ -433,27 +461,6 @@ class CmdTree:
         return '\n'.join(cmds)
 
 
-def postprocess_args(func: NamespaceFunc,
-                     postprocessors: list[NamespaceFunc]):
-    '''
-    Wraps a function with postprocessors.
-
-    Args:
-        func (NamespaceFunc): The main function for subcommand arguments.
-        postprocessors (list[NamespaceFunc]): List of postprocessor functions.
-
-    Returns:
-        NamespaceFunc: The wrapped function with postprocessing logic.
-    '''
-    @wraps(func)
-    def wrapper(args: Namespace):
-        funcs = sorted(postprocessors, key=lambda func_tuple: func_tuple[0], reverse=True)
-        for _, postproc_func in funcs:
-            postproc_func(args)
-        func(args)
-    return wrapper
-
-
 class ArgGroup:
     '''
     Represents a group of arguments for an argument parser or subcommand.
@@ -484,6 +491,7 @@ class ArgGroup:
         Returns:
             Callable: The apply wrapper function.
         '''
+
         def _apply_group(parser: ArgumentParser):
             if self.group_name is None:
                 group = parser
@@ -491,8 +499,8 @@ class ArgGroup:
                 group = parser.add_argument_group(title=self.group_name,
                                                   description=self.desc)
             self.arg_func(group, *args, **kwargs)
-            parser.set_defaults(func=postprocess_args(parser.get_default('func'),
-                                                      self.postprocessors))
+            parser._parse_known_args = self._enqueue_postprocessors(parser, parser._parse_known_args)
+        
         def wrapper(target: SubCmd):
             if common:
                 target.cmd_tree.register_common_args(target.name, _apply_group)
@@ -515,6 +523,16 @@ class ArgGroup:
         def wrapper(func: NamespaceFunc):
             self.postprocessors.append((priority, func))
             return func
+        return wrapper
+
+    def _enqueue_postprocessors(self, obj, _parse_known_args_func):
+
+        @wraps(_parse_known_args_func)
+        def wrapper(*args, **kwargs):
+            for priority, func in self.postprocessors:
+                obj._cmd_tree.enqueue_postprocessor(func, priority)
+            return _parse_known_args_func(*args, **kwargs)
+        
         return wrapper
 
 

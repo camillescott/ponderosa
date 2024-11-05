@@ -412,3 +412,40 @@ def test_postprocessor_priorities(cmd_tree):
 
     cmd_tree.run(['test_cmd', '--foo', '42'])
     assert postprocessed == [84, True]
+
+
+def test_postprocessor_priorities_with_common_args(cmd_tree):
+    postprocessed = []
+
+    @cmd_tree.register('grandparent')
+    def grandparent_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @grandparent_cmd.args(common=True)
+    def common_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @common_args.postprocessor(priority=50)
+    def _(namespace: Namespace):
+        postprocessed.append('common')
+
+    @cmd_tree.register('grandparent', 'parent', 'child')
+    def child_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @child_cmd.args()
+    def child_args(parser):
+        parser.add_argument('--bar', type=int)
+
+    @child_args.postprocessor(priority=0)
+    def child_1(namespace: Namespace):
+        postprocessed.append('child_1')
+
+    @child_args.postprocessor(priority=100)
+    def child_2(namespace: Namespace):
+        postprocessed.append('child_2')
+
+    args = cmd_tree.parse_args(['grandparent', 'parent', 'child', '--foo', '42', '--bar', '21'])
+    assert args.foo == 42
+    assert args.bar == 21
+    assert postprocessed == ['child_2', 'common', 'child_1']
