@@ -225,3 +225,64 @@ High priority: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None,
 Low priority: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2, calculated=4)
 Handling subcommand with args: Namespace(func=<function foobar_cmd at 0x7693e57b5bc0>, foo=None, bar=2, calculated=4)
 ```
+
+## Async Support
+
+Ponderosa supports `async def` command functions and postprocessors out of the box.
+There's nothing special to opt in to: just define your functions as `async` and ponderosa handles the rest.
+
+### Async Command Functions
+
+When `run()` detects an async command function, it automatically manages the event loop via `asyncio.run()`:
+
+```python
+from argparse import Namespace
+from ponderosa import ArgParser, CmdTree
+
+commands = CmdTree()
+
+@commands.register('fetch', help='Fetch data asynchronously')
+async def fetch_cmd(args: Namespace) -> int:
+    data = await some_async_operation(args.url)
+    print(data)
+    return 0
+
+@fetch_cmd.args()
+def _(parser: ArgParser):
+    parser.add_argument('url')
+
+if __name__ == '__main__':
+    commands.run()
+```
+
+### Async Postprocessors
+
+Postprocessors can also be async. They execute sequentially in priority order, just like their synchronous counterparts, and can be freely mixed with sync postprocessors:
+
+```python
+@foobar_args.postprocessor(priority=100)
+async def validate_connection(args: Namespace):
+    args.db = await connect_to_database(args.db_url)
+
+@foobar_args.postprocessor(priority=0)
+def set_defaults(args: Namespace):
+    args.timeout = args.timeout or 30
+```
+
+### Explicit Async Entry Points
+
+If you're already inside an async context (e.g., embedding ponderosa in an async application), use `async_run()` or `async_parse_args()` directly:
+
+```python
+import asyncio
+from ponderosa import CmdTree
+
+commands = CmdTree()
+
+# ... register commands ...
+
+async def main():
+    retcode = await commands.async_run()
+
+asyncio.run(main())
+```
