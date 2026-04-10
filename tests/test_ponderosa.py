@@ -449,3 +449,107 @@ def test_postprocessor_priorities_with_common_args(cmd_tree):
     assert args.foo == 42
     assert args.bar == 21
     assert postprocessed == ['child_2', 'common', 'child_1']
+
+
+def test_async_command_via_run(cmd_tree):
+    result = []
+
+    @cmd_tree.register('async_cmd')
+    async def async_cmd(namespace: Namespace) -> int:
+        result.append('executed')
+        return 0
+
+    retcode = cmd_tree.run(['async_cmd'])
+    assert retcode == 0
+    assert result == ['executed']
+
+
+def test_async_postprocessor_via_run(cmd_tree):
+    postprocessed = []
+
+    @cmd_tree.register('test_cmd')
+    def test_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @test_cmd.args()
+    def test_cmd_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @test_cmd_args.postprocessor()
+    async def async_pp(namespace: Namespace):
+        postprocessed.append(namespace.foo * 2)
+
+    cmd_tree.run(['test_cmd', '--foo', '42'])
+    assert postprocessed[-1] == 84
+
+
+def test_mixed_sync_async_postprocessors(cmd_tree):
+    postprocessed = []
+
+    @cmd_tree.register('test_cmd')
+    def test_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @test_cmd.args()
+    def test_cmd_args(parser):
+        parser.add_argument('--foo', type=int)
+
+    @test_cmd_args.postprocessor(priority=100)
+    async def high_priority(namespace: Namespace):
+        postprocessed.append('async_high')
+
+    @test_cmd_args.postprocessor(priority=0)
+    def low_priority(namespace: Namespace):
+        postprocessed.append('sync_low')
+
+    cmd_tree.run(['test_cmd', '--foo', '42'])
+    assert postprocessed == ['async_high', 'sync_low']
+
+
+def test_async_run_directly():
+    import asyncio
+    from ponderosa import CmdTree
+
+    tree = CmdTree()
+    result = []
+
+    @tree.register('acmd')
+    async def acmd(namespace: Namespace) -> int:
+        result.append('ran')
+        return 42
+
+    retcode = asyncio.run(tree.async_run(['acmd']))
+    assert retcode == 42
+    assert result == ['ran']
+
+
+def test_async_parse_args_with_async_postprocessor():
+    import asyncio
+    from ponderosa import CmdTree
+
+    tree = CmdTree()
+    postprocessed = []
+
+    @tree.register('test_cmd')
+    def test_cmd(namespace: Namespace) -> int:
+        return 0
+
+    @test_cmd.args()
+    def test_cmd_args(parser):
+        parser.add_argument('--val', type=int)
+
+    @test_cmd_args.postprocessor()
+    async def async_pp(namespace: Namespace):
+        postprocessed.append(namespace.val * 3)
+
+    parsed = asyncio.run(tree.async_parse_args(['test_cmd', '--val', '10']))
+    assert parsed.val == 10
+    assert postprocessed == [30]
+
+
+def test_sync_code_unchanged(cmd_tree):
+    @cmd_tree.register('sync_cmd')
+    def sync_cmd(namespace: Namespace) -> int:
+        return 7
+
+    assert cmd_tree.run(['sync_cmd']) == 7

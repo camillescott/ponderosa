@@ -6,21 +6,30 @@
 # Author : Camille Scott <camille@bogg.cc>
 # Date   : 02.11.2024
 
+import asyncio
 from argparse import (Action,
-                      ArgumentParser, 
+                      ArgumentParser,
                       _ArgumentGroup,
                       Namespace,
                       _SubParsersAction)
 from collections import deque
+from collections.abc import Coroutine
 from functools import wraps
+import inspect
 from itertools import pairwise
 from typing import Callable, Type
 
 
 Subparsers = _SubParsersAction
 NamespaceFunc = Callable[[Namespace], int | None]
+AsyncNamespaceFunc = Callable[[Namespace], Coroutine[None, None, int | None]]
+AnyNamespaceFunc = NamespaceFunc | AsyncNamespaceFunc
 ArgParser = ArgumentParser | _ArgumentGroup
 ArgAdderFunc = Callable[[ArgParser], Action | None]
+
+
+def _is_async_callable(func) -> bool:
+    return inspect.iscoroutinefunction(func)
 
 
 class SubCmd:
@@ -73,7 +82,7 @@ class SubCmd:
         return self.parser._defaults['func']
 
     @func.setter
-    def func(self, new_func: NamespaceFunc):
+    def func(self, new_func: AnyNamespaceFunc):
         '''
         Sets the function associated with the subcommand.
 
@@ -109,7 +118,7 @@ class CmdTree:
         self.root = SubCmd(self._root, self._root.prog, self)
         self.common_adders: list[tuple[str | None, ArgAdderFunc]] = []
         self.common_applied: set[tuple[ArgParser, ArgAdderFunc]] = set()
-        self.postprocessors_q: list[tuple[int, NamespaceFunc]] = []
+        self.postprocessors_q: list[tuple[int, AnyNamespaceFunc]] = []
 
     def parse_args(self, *args, **kwargs):
         '''
@@ -127,13 +136,73 @@ class CmdTree:
         self._run_postprocessors(parsed)
         return parsed
 
+    async def async_parse_args(self, *args, **kwargs):
+        '''
+        Async variant of parse_args that awaits async postprocessors.
+
+        Args:
+            *args: Variadic positional arguments for ArgumentParser.
+            **kwargs: Variadic keyword arguments for ArgumentParser.
+
+        Returns:
+            Namespace: The collected argument Namespace.
+        '''
+        self._apply_common_args()
+        parsed = self._root.parse_args(*args, **kwargs)
+        await self._async_run_postprocessors(parsed)
+        return parsed
+
     def run(self, *args, **kwargs) -> int:
-        parsed = self.parse_args(*args, **kwargs)
+        self._apply_common_args()
+        parsed = self._root.parse_args(*args, **kwargs)
+
+        needs_async = _is_async_callable(parsed.func) or self._has_async_postprocessors()
+
+        if needs_async:
+            try:
+                asyncio.get_running_loop()
+                raise RuntimeError(
+                    "CmdTree.run() cannot be used inside a running event loop. "
+                    "Use 'await cmd_tree.async_run()' instead."
+                )
+            except RuntimeError as e:
+                if "no current event loop" not in str(e) and "no running event loop" not in str(e):
+                    raise
+
+            async def _async_finish():
+                await self._async_run_postprocessors(parsed)
+                if _is_async_callable(parsed.func):
+                    retcode = await parsed.func(parsed)
+                else:
+                    retcode = parsed.func(parsed)
+                return 0 if retcode is None else retcode
+
+            return asyncio.run(_async_finish())
+
+        self._run_postprocessors(parsed)
         if (retcode := parsed.func(parsed)) is None:
             return 0
         return retcode
 
-    def enqueue_postprocessor(self, func: NamespaceFunc, priority: int = 0):
+    async def async_run(self, *args, **kwargs) -> int:
+        '''
+        Async variant of run that awaits async command functions and postprocessors.
+
+        Args:
+            *args: Variadic positional arguments for ArgumentParser.
+            **kwargs: Variadic keyword arguments for ArgumentParser.
+
+        Returns:
+            int: The return code from the command function.
+        '''
+        parsed = await self.async_parse_args(*args, **kwargs)
+        if _is_async_callable(parsed.func):
+            retcode = await parsed.func(parsed)
+        else:
+            retcode = parsed.func(parsed)
+        return 0 if retcode is None else retcode
+
+    def enqueue_postprocessor(self, func: AnyNamespaceFunc, priority: int = 0):
         '''
         Enqueues a postprocessor function to run after argument parsing.
 
@@ -154,6 +223,23 @@ class CmdTree:
         funcs = sorted(self.postprocessors_q, key=lambda func_tuple: func_tuple[0], reverse=True)
         for _, postproc_func in funcs:
             postproc_func(args)
+
+    def _has_async_postprocessors(self) -> bool:
+        return any(_is_async_callable(func) for _, func in self.postprocessors_q)
+
+    async def _async_run_postprocessors(self, args: Namespace):
+        '''
+        Async variant of _run_postprocessors that awaits async postprocessors.
+
+        Args:
+            args (Namespace): The Namespace to postprocess.
+        '''
+        funcs = sorted(self.postprocessors_q, key=lambda func_tuple: func_tuple[0], reverse=True)
+        for _, postproc_func in funcs:
+            if _is_async_callable(postproc_func):
+                await postproc_func(args)
+            else:
+                postproc_func(args)
 
     def _get_subparser_action(self, parser: ArgumentParser) -> _SubParsersAction | None:
         '''
@@ -324,7 +410,7 @@ class CmdTree:
         return child
 
     def register_cmd(self, cmd_fullname: list[str],
-                           cmd_func: NamespaceFunc,
+                           cmd_func: AnyNamespaceFunc,
                            aliases: list[str] | None = None,
                            help: str | None = None,
                            **parser_kwargs) -> ArgumentParser:
@@ -373,7 +459,7 @@ class CmdTree:
         Returns:
             Callable: The subcommand wrapper.
         '''
-        def wrapper(cmd_func: NamespaceFunc):
+        def wrapper(cmd_func: AnyNamespaceFunc):
             return SubCmd(self.register_cmd(list(cmd_fullname),
                                             cmd_func,
                                             aliases=aliases,
@@ -476,7 +562,7 @@ class ArgGroup:
         self.group_name = group_name
         self.arg_func = arg_func
         self.desc = desc
-        self.postprocessors: list[tuple[int, NamespaceFunc]] = []
+        self.postprocessors: list[tuple[int, AnyNamespaceFunc]] = []
 
     def apply(self, common: bool = False, *args, **kwargs):
         '''
@@ -519,7 +605,7 @@ class ArgGroup:
         Returns:
             Callable: The input function itself.
         '''
-        def wrapper(func: NamespaceFunc):
+        def wrapper(func: AnyNamespaceFunc):
             self.postprocessors.append((priority, func))
             return func
         return wrapper
