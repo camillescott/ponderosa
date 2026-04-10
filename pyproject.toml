@@ -10,6 +10,9 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Utilities",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: User Interfaces"
@@ -77,13 +80,14 @@ testpaths = [
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py312, py313
+envlist = py312, py313, py314
 skip_missing_interpreters = true
 
 [gh-actions]
 python =
     3.12: py312
     3.13: py313
+    3.14: py314
 
 [testenv]
 passenv = GITHUB_*
